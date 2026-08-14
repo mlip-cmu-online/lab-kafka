@@ -1,2 +1,2 @@
-kafka-python>=2.0.2
-
+ipykernel>=6.29,<7
+kafka-python>=2.0.2,<3

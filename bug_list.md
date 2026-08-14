@@ -3,113 +3,102 @@
 ## Connection Issues
 
 ### Error: `NoBrokersAvailable: NoBrokersAvailable`
-**Problem**: Not connected to the Kafka server via SSH tunnel.
 
-**Solution**: 
-1. Make sure you've established the SSH tunnel first:
+The Python client cannot reach the Kafka broker through the expected local port.
+
+1. Confirm that the foreground SSH tunnel is still running in its terminal.
+2. Confirm that the notebook uses the same `<local_port>` as the tunnel.
+3. Check the tunnel and broker metadata from a second terminal.
+
    ```bash
-   ssh -L <local_port>:localhost:<remote_port> <user>@<remote_server> -NTf
+   lsof -i :<local_port>
+   kcat -b localhost:<local_port> -L
    ```
-2. Verify the tunnel is active: `lsof -i :<local_port>` (should show ssh process)
-3. Use the same port number in your `bootstrap_servers` parameter
 
----
+Recreate the tunnel with the Canvas-supplied connection details if no SSH process is listening.
 
-### Error: `kcat` connection failures
-```
-% ERROR: Failed to query metadata for topic <topic_name>: Local: Broker transport failure
-Connect to ipv6#[::1]:9092 failed: Connection refused
+```bash
+ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -L <local_port>:localhost:<remote_port> <user>@<remote_server> -NT
 ```
 
-**Problem**: SSH tunnel not established before running kcat.
+Enter the password only when SSH prompts for it, and do not save the credentials in the repository or notebook.
 
-**Solution**: 
-- Always establish SSH tunnel BEFORE running kcat commands
-- Use: `ssh -o ServerAliveInterval=60 -L 9092:localhost:9092 <user>@<remote_server> -NTf`
-- Verify connection with: `kcat -b localhost:9092 -L` (should list topics)
+### Error: `kcat` Broker Transport Failure
 
----
+This error usually means that `kcat` cannot reach the forwarded local port.
+
+1. Confirm that the SSH tunnel terminal is still open.
+2. Use `localhost:<local_port>` as the broker address.
+3. Run the metadata check before trying to consume messages.
+
+   ```bash
+   kcat -b localhost:<local_port> -L
+   ```
 
 ### Error: `Port already in use` or `Address already in use`
-**Problem**: Another SSH tunnel is already using that port, or previous tunnel wasn't killed.
 
-**Solution**:
-1. Find and kill existing tunnel:
-   ```bash
-   lsof -ti:<local_port> | xargs kill -9
-   ```
-2. Or use a different local port in your SSH command
+Another process or an earlier SSH tunnel is already using the selected local port.
 
----
+1. Run `lsof -i :<local_port>` to identify the process.
+2. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the earlier tunnel terminal if it is still open.
+3. Otherwise, choose another unused local port and use it consistently in SSH, Python, and `kcat`.
 
 ## Code Issues
 
 ### Error: `TypeError: a bytes-like object is required, not 'str'`
-**Problem**: Trying to send string directly instead of bytes, or consumer trying to decode already-decoded data.
 
-**Solution**:
-- For Producer: Use `value_serializer=lambda v: json.dumps(v).encode('utf-8')` or `value_serializer=lambda m: dumps(m).encode('utf-8')`
-- For Consumer: If producer used serializer, consumer needs `value_deserializer=lambda m: loads(m.decode('utf-8'))`. Otherwise, manually decode: `message.value.decode('utf-8')`
+Kafka messages must be serialized to bytes before the producer sends them.
+Use `value_serializer=lambda value: dumps(value).encode("utf-8")` in the producer.
+Decode and parse the bytes in the consumer only when a `value_deserializer` has not already done so.
 
----
+### Consumer Reads No Messages or Unexpected Old Messages
 
-### Error: Consumer not reading messages / Consumer reads old messages
-**Problem**: `auto_offset_reset` setting or consumer group behavior.
-
-**Solution**:
-- Use `auto_offset_reset='earliest'` to read from beginning
-- Use `auto_offset_reset='latest'` to read only new messages
-- If using same consumer group, Kafka remembers your offset. Either:
-  - Use a different `group_id` each time, OR
-  - Set `auto_offset_reset='earliest'` and `enable_auto_commit=False` for testing
-
----
+The result depends on the consumer group and its committed offset.
+Use `auto_offset_reset="earliest"` to start at the beginning only when the consumer group has no committed offset.
+Use `auto_offset_reset="latest"` to wait for messages produced after that new consumer starts.
+Use a new `group_id` or disable automatic commits when you need a repeatable experiment with reset behavior.
 
 ### Error: `Topic does not exist` or `UnknownTopicOrPartitionException`
-**Problem**: Topic hasn't been created yet, or wrong topic name.
 
-**Solution**:
-1. Make sure you ran the producer code first to create the topic
-2. Verify topic exists: `kcat -b localhost:9092 -L` (lists all topics)
-3. Check topic name spelling matches exactly (case-sensitive)
+The producer may not have created the topic yet, or the producer and consumer topic names may differ.
 
----
+1. Run the producer before the consumer.
+2. Confirm that your Andrew ID or other unique identifier appears in the topic name.
+3. Run `kcat -b localhost:<local_port> -L` and check the topic spelling exactly.
 
-### Error: `AttributeError: 'dict' object has no attribute 'decode'`
-**Problem**: Consumer code trying to decode when value_deserializer already decoded the message.
+### Error: `'dict' object has no attribute 'decode'`
 
-**Solution**: 
-- If using `value_deserializer` in consumer, `message.value` is already a dict, no need to decode/loads
-- If NOT using deserializer, then decode: `message.value.decode('utf-8')` then `loads(...)`
-
----
+A configured `value_deserializer` has already converted `message.value` into a dictionary.
+Use the dictionary directly instead of decoding and parsing it again.
 
 ## Environment Issues
 
 ### Error: `ModuleNotFoundError: No module named 'kafka'`
-**Problem**: kafka-python not installed or wrong Python environment.
 
-**Solution**:
-1. Activate your virtual environment: `source <env_name>/bin/activate`
-2. Install: `pip install kafka-python` or `pip install -r requirements.txt`
-3. Verify: `python -c "from kafka import KafkaProducer; print('OK')"`
+In a Codespace or DevContainer, wait for the post-create command to finish and select `.venv/bin/python` as the notebook kernel.
+In a local environment, activate the virtual environment and install the requirements.
 
----
+```bash
+source <environment_name>/bin/activate
+python -m pip install -r requirements.txt
+python -c "from kafka import KafkaProducer; print('kafka-python ready')"
+```
 
 ### Error: `kcat: command not found`
-**Problem**: kcat not installed.
 
-**Solution**:
-- macOS: `brew install kcat`
-- Ubuntu/Debian: `sudo apt-get install kcat`
-- Windows: Use WSL or another Linux environment for this deliverable
+Rebuild the Codespace or DevContainer because the provided Linux image installs `kcat` automatically.
+For an unsupported local environment, install `kcat` with the operating system package manager.
 
----
+```bash
+# Ubuntu or Debian
+sudo apt-get update
+sudo apt-get install kcat
+```
 
-## General Troubleshooting Tips
+## Final Checks
 
-1. **Always check SSH tunnel first**: `lsof -i :<your_port>` should show an ssh process
-2. **Test connection**: Try `kcat -b localhost:<port> -L` to list topics before running Python code
-3. **Check topic name**: Make sure producer and consumer use the exact same topic name
-4. **Restart consumer**: If consumer seems stuck, stop it (Ctrl+C) and restart with a new group_id
-5. **Verify data format**: Print `message.value` before processing to see what format you're getting
+1. Confirm that the tunnel terminal is still open.
+2. Confirm that SSH, Python, and `kcat` all use the same local port.
+3. Confirm that the producer and consumer use the same unique topic name.
+4. Stop a consumer that is waiting indefinitely with <kbd>Ctrl</kbd>+<kbd>C</kbd> and recheck its group and reset settings.
+5. Print `message.value` before processing it when the serialized data format is unclear.
