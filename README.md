@@ -2,10 +2,11 @@
 
 In this lab, you will gain hands-on experience with Apache Kafka, a distributed streaming platform that plays a key role in processing large-scale real-time data. You will establish a connection to a Kafka broker, produce and consume messages, and explore Kafka command-line tools. This lab will prepare you for your group project, where you'll work with Kafka streams. 
 
-To receive credit for this lab, show your work to the TA during recitation.
+Complete each deliverable and save the requested outputs and explanations as evidence of your work.
 
 ## Deliverables
-- [ ] Establish a secure SSH tunnel to the Kafka server. Explain to the TA the concepts of topic and offsets in Kafka and how this ensures message continuity if a consumer is disconnected.
+- [ ] Establish a secure SSH tunnel to the Kafka server and save the connection evidence.
+      Explain in your lab notes how topics and offsets support message continuity when a consumer disconnects.
 - [ ] Modify starter code to implement producer and consumer modes for a Kafka topic. Explain the tradeoffs of the different *auto_offset_reset* values.
 - [ ] Demonstrate using Kafka's CLI tool *kcat* (or alternatives) to manage and monitor Kafka topics and messages.
 
@@ -47,7 +48,7 @@ Ref:
 Install with your package installer such as:
 - macOS: `brew install kcat`
 - Ubuntu: `apt-get install kcat`
-- Note for Windows Users: Setting up kcat on Windows is complex. Please work in pairs with someone with mac/Ubuntu during recitation for this deliverable. The purpose is to understand CLI which will be helpful in the group project for using Kafka on Virtual machines (Linux based).
+- Windows: Run `kcat` in WSL or another Linux environment because native Windows setup is complex.
 
 Using the kcat documentation, write a command that connects to the local Kafka broker, specifies a topic, and consumes messages from the earliest offset. 
 
@@ -66,5 +67,4 @@ For your group project you will be reading movies from the Kafka stream. Try fin
 - [Kafka for Beginners](https://www.cloudkarafka.com/blog/2016-11-30-part1-kafka-for-beginners-what-is-apache-kafka.html)
 - [What is Apache Kafka? - TIBCO](https://www.tibco.com/reference-center/what-is-apache-kafka)
 - [Common bugs and solutions](./bug_list.md) - Troubleshooting guide for connection issues, code errors, and environment setup
-
 
