@@ -102,7 +102,7 @@ Connect to ipv6#[::1]:9092 failed: Connection refused
 **Solution**:
 - macOS: `brew install kcat`
 - Ubuntu/Debian: `sudo apt-get install kcat`
-- Windows: Use WSL or pair with someone on Mac/Linux for this deliverable
+- Windows: Use WSL or another Linux environment for this deliverable
 
 ---
 
