@@ -14,6 +14,59 @@ Complete each deliverable and save the requested outputs and explanations as evi
       Explain the tradeoffs of the different *auto_offset_reset* values.
 - [ ] Demonstrate using Kafka's CLI tool *kcat* (or alternatives) to manage and monitor Kafka topics and messages.
 
+## Generate the Submission Report
+
+Run every executable notebook cell and save `KafkaDemo.ipynb` with its outputs before closing the broker connection.
+Keep the complete `kafka_log.csv`, the SSH tunnel command or listening-port output, and the exact `kcat` command followed by its output in an `evidence/` directory.
+The `kcat` command must consume from the earliest offset and print offsets, for example:
+
+```bash
+mkdir -p evidence
+lsof -i :9092 | tee evidence/tunnel.txt
+{
+  printf '%s\n' 'kcat -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"'
+  kcat -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"
+} | tee evidence/kcat.txt
+```
+
+Record the non-secret client settings in `evidence/client-config.json`.
+Use the same local tunnel broker in both client sections, describe the producer serialization, and do not include the SSH password or other credentials.
+
+```json
+{
+  "topic": "lab02-asmith",
+  "producer": {
+    "bootstrap_servers": ["localhost:9092"],
+    "value_serializer": "JSON encoded as UTF-8 bytes"
+  },
+  "consumer": {
+    "bootstrap_servers": ["localhost:9092"],
+    "auto_offset_reset": "earliest",
+    "enable_auto_commit": true
+  }
+}
+```
+
+Generate the report from the repository root, replacing the example name, port, and observed offset with values from your saved evidence:
+
+```bash
+python3 scripts/generate-kafka-submission.py \
+  --learner "Your name" \
+  --notebook KafkaDemo.ipynb \
+  --kafka-log kafka_log.csv \
+  --client-config evidence/client-config.json \
+  --tunnel-evidence evidence/tunnel.txt \
+  --kcat-evidence evidence/kcat.txt \
+  --local-port 9092 \
+  --observed-offset 12
+```
+
+Open `submission/kafka-report.html` and correct every item marked `missing` before uploading it to Canvas.
+Keep `submission/kafka-manifest.json` with the raw evidence.
+The command reads saved files only: it does not open an SSH tunnel, reconnect to Kafka, or rerun the notebook.
+It checks notebook execution, the required artifact structure, matching topic/broker/port settings, an earliest-offset `kcat` command, consistency of the cited observed offset, and obvious plaintext credential leakage.
+Answer the offset and start-position interpretation questions separately in Canvas; the checker does not decide whether those explanations are correct.
+
 ## Getting started
 
 The recommended environment is the provided Linux DevContainer, which includes Python, the notebook dependencies, SSH tools, and `kcat`.
