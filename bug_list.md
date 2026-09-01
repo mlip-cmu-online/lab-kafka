@@ -12,7 +12,7 @@ The Python client cannot reach the Kafka broker through the expected local port.
 
    ```bash
    lsof -i :<local_port>
-   kcat -b localhost:<local_port> -L
+   kcat -F ~/.config/mlip-kafka.conf -b localhost:<local_port> -L
    ```
 
 Recreate the tunnel with the Canvas-supplied connection details if no SSH process is listening.
@@ -21,7 +21,7 @@ Recreate the tunnel with the Canvas-supplied connection details if no SSH proces
 ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -L <local_port>:localhost:<remote_port> <user>@<remote_server> -NT
 ```
 
-Enter the password only when SSH prompts for it, and do not save the credentials in the repository or notebook.
+Do not save the SSH or shared Kafka credentials in the repository or notebook.
 
 ### Error: `kcat` Broker Transport Failure
 
@@ -32,7 +32,7 @@ This error usually means that `kcat` cannot reach the forwarded local port.
 3. Run the metadata check before trying to consume messages.
 
    ```bash
-   kcat -b localhost:<local_port> -L
+   kcat -F ~/.config/mlip-kafka.conf -b localhost:<local_port> -L
    ```
 
 ### Error: `Port already in use` or `Address already in use`
@@ -42,6 +42,12 @@ Another process or an earlier SSH tunnel is already using the selected local por
 1. Run `lsof -i :<local_port>` to identify the process.
 2. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the earlier tunnel terminal if it is still open.
 3. Otherwise, choose another unused local port and use it consistently in SSH, Python, and `kcat`.
+
+### Error: `SASL authentication failed`
+
+Re-enter the shared Kafka credential from Canvas. In the notebook, rerun the setup cell so it prompts again.
+For `kcat`, recreate `~/.config/mlip-kafka.conf` using the README instructions.
+Never paste the credential into the notebook or saved evidence.
 
 ## Code Issues
 
@@ -64,7 +70,7 @@ The producer may not have created the topic yet, or the producer and consumer to
 
 1. Run the producer before the consumer.
 2. Confirm that your Andrew ID or other unique identifier appears in the topic name.
-3. Run `kcat -b localhost:<local_port> -L` and check the topic spelling exactly.
+3. Run `kcat -F ~/.config/mlip-kafka.conf -b localhost:<local_port> -L` and check the topic spelling exactly.
 
 ### Error: `'dict' object has no attribute 'decode'`
 

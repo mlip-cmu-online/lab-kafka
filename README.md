@@ -24,8 +24,8 @@ The `kcat` command must consume from the earliest offset and print offsets, for 
 mkdir -p evidence
 lsof -i :9092 | tee evidence/tunnel.txt
 {
-  printf '%s\n' 'kcat -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"'
-  kcat -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"
+  printf '%s\n' 'kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"'
+  kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"
 } | tee evidence/kcat.txt
 ```
 
@@ -37,10 +37,16 @@ Use the same local tunnel broker in both client sections, describe the producer 
   "topic": "lab02-asmith",
   "producer": {
     "bootstrap_servers": ["localhost:9092"],
+    "security_protocol": "SASL_PLAINTEXT",
+    "sasl_mechanism": "PLAIN",
+    "sasl_username": "students",
     "value_serializer": "JSON encoded as UTF-8 bytes"
   },
   "consumer": {
     "bootstrap_servers": ["localhost:9092"],
+    "security_protocol": "SASL_PLAINTEXT",
+    "sasl_mechanism": "PLAIN",
+    "sasl_username": "students",
     "auto_offset_reset": "earliest",
     "enable_auto_commit": true
   }
@@ -94,22 +100,28 @@ Check the [bug list and solutions](./bug_list.md) if you encounter common enviro
 
 ## Connecting to Kafka server
 
-1. Retrieve the `remote_server`, `remote_port`, `user`, and password from the Canvas entry for this lab.
-   Enter the password only when SSH prompts for it, and do not save these credentials in the repository or notebook.
+1. Retrieve the SSH tunnel details and shared Kafka credential from the Canvas entry for this lab.
+   Do not save either credential in the repository or notebook.
    Use SSH to create a foreground tunnel to the Kafka server.
 
    ```bash
-   ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -L <local_port>:localhost:<remote_port> <user>@<remote_server> -NT
+   ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -L 9092:localhost:<remote_port> <user>@<remote_server> -NT
    ```
 
-   Use the same `<local_port>` throughout the lab, such as `9092`.
-   This port will be your `bootstrap_servers` address.
+   Kafka advertises `localhost:9092`, so the local end of the tunnel must be
+   port `9092`. This will be your `bootstrap_servers` address.
    Keep this terminal open while you use Kafka, and press <kbd>Ctrl</kbd>+<kbd>C</kbd> in it when you finish the lab to close the tunnel.
 
-2. Open a second terminal and test broker reachability through the tunnel.
+2. In a second terminal, create a private `kcat` configuration outside the repository, then test broker reachability through the tunnel.
 
    ```bash
-   kcat -b localhost:<local_port> -L
+   mkdir -p ~/.config && chmod 700 ~/.config
+   read -rsp "Kafka credential: " KAFKA_CREDENTIAL
+   printf '\nsecurity.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.username=students\nsasl.password=%s\n' \
+     "${KAFKA_CREDENTIAL}" > ~/.config/mlip-kafka.conf
+   chmod 600 ~/.config/mlip-kafka.conf
+   unset KAFKA_CREDENTIAL
+   kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L
    ```
 
    Continue only when the command returns broker and topic metadata.
@@ -142,7 +154,7 @@ Install with your package installer such as:
 - Ubuntu: `apt-get install kcat`
 - Windows: Use the provided Codespace or DevContainer because native Windows setup is complex.
 
-Using the kcat documentation, write a command that connects to the local Kafka broker, specifies a topic, and consumes messages from the earliest offset.
+Using the kcat documentation, write a command that uses `-F ~/.config/mlip-kafka.conf`, connects to the local Kafka broker, specifies a topic, and consumes messages from the earliest offset.
 
 References:
 
@@ -154,7 +166,7 @@ References:
 For your group project you will be reading movies from the Kafka stream.
 Try finding the list of all topics and then read some movielog streams to get an idea of what the data looks like.
 
-`kcat -b localhost:9092 -L`
+`kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L`
 
 ## Additional resources
 
