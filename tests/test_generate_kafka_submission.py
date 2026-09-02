@@ -31,7 +31,7 @@ class GenerateKafkaSubmissionTest(unittest.TestCase):
         self._write(
             "evidence/client-config.json",
             json.dumps({
-                "topic": "lab02-asmith",
+                "topic": "lab-kafka-asmith",
                 "producer": {
                     "bootstrap_servers": ["localhost:9092"],
                     "value_serializer": "JSON encoded as UTF-8 bytes",
@@ -49,7 +49,7 @@ class GenerateKafkaSubmissionTest(unittest.TestCase):
         )
         self._write(
             "evidence/kcat.txt",
-            '$ kcat -b localhost:9092 -t lab02-asmith -C -o earliest -c 2 -f "%o: %s\\n"\n'
+            '$ kcat -b localhost:9092 -t lab-kafka-asmith -C -o earliest -c 2 -f "%o: %s\\n"\n'
             '12: {"city":"Pittsburgh","timestamp":"2026-08-15 12:00:00","temperature_f":64}\n'
             '13: {"city":"Chicago","timestamp":"2026-08-15 12:00:01","temperature_f":71}\n',
         )
@@ -71,11 +71,11 @@ class GenerateKafkaSubmissionTest(unittest.TestCase):
                     "metadata": {},
                     "outputs": [{
                         "name": "stdout", "output_type": "stream",
-                        "text": ["Topic: lab02-asmith\n"],
+                        "text": ["Topic: lab-kafka-asmith\n"],
                     }],
                     "source": [
                         "from kafka import KafkaProducer, KafkaConsumer\n",
-                        "topic = 'lab02-asmith'\n",
+                        "topic = 'lab-kafka-asmith'\n",
                         "producer = KafkaProducer(bootstrap_servers=['localhost:9092'])\n",
                         "producer.send(topic, value=b'{}')\n",
                         "producer.flush()\n",
@@ -132,7 +132,7 @@ class GenerateKafkaSubmissionTest(unittest.TestCase):
         self.assertTrue(all(item["status"] == "present" for item in manifest["checks"]))
         self.assertEqual(manifest["identifiers"]["observed_offset"], 12)
         self.assertEqual(manifest["manual_spot_checks"], ["offset", "start_position"])
-        self.assertIn("lab02-asmith", report)
+        self.assertIn("lab-kafka-asmith", report)
         self.assertIn("12: {&quot;city&quot;", report)
 
     def test_marks_unexecuted_notebook_and_uncited_offset_incomplete(self) -> None:

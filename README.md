@@ -24,8 +24,8 @@ The `kcat` command must consume from the earliest offset and print offsets, for 
 mkdir -p evidence
 lsof -i :9092 | tee evidence/tunnel.txt
 {
-  printf '%s\n' 'kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"'
-  kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab02-asmith -C -o earliest -c 5 -f "%o: %s\n"
+  printf '%s\n' 'kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab-kafka-asmith -C -o earliest -c 5 -f "%o: %s\n"'
+  kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab-kafka-asmith -C -o earliest -c 5 -f "%o: %s\n"
 } | tee evidence/kcat.txt
 ```
 
@@ -34,7 +34,7 @@ Use the same local tunnel broker in both client sections, describe the producer 
 
 ```json
 {
-  "topic": "lab02-asmith",
+  "topic": "lab-kafka-asmith",
   "producer": {
     "bootstrap_servers": ["localhost:9092"],
     "security_protocol": "SASL_PLAINTEXT",
@@ -100,8 +100,9 @@ Check the [bug list and solutions](./bug_list.md) if you encounter common enviro
 
 ## Connecting to Kafka server
 
-1. Retrieve the SSH tunnel details and shared Kafka credential from the Canvas entry for this lab.
-   Do not save either credential in the repository or notebook.
+1. Retrieve the SSH tunnel details and the shared Kafka credential from the Canvas entry for this lab.
+   These are two separate credentials: an SSH password that opens the tunnel, and a Kafka password that the client authenticates with.
+   Enter the SSH password only when SSH prompts for it, and do not save either credential in the repository or notebook.
    Use SSH to create a foreground tunnel to the Kafka server.
 
    ```bash
