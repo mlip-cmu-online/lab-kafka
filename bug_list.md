@@ -7,19 +7,19 @@
 The Python client cannot reach the Kafka broker through the forwarded local port.
 The broker advertises itself as `localhost:9092`, so the local end of the tunnel must be port `9092` and `bootstrap_servers` must be `localhost:9092`.
 
-1. Confirm that the foreground SSH tunnel is still running in its terminal.
+1. Run `./connect-kafka <user>@<remote_server> <remote_port>` again. It will report if its background tunnel is already running.
 2. Confirm that the notebook uses `localhost:9092`.
-3. Check the tunnel and broker metadata from a second terminal.
+3. Check the local port and broker metadata.
 
    ```bash
    lsof -i :9092
-   kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L
+   kcat -F ~/.config/mlip-kafka.conf -L
    ```
 
-Recreate the tunnel with the Canvas-supplied connection details if no SSH process is listening.
+Reconnect with the Canvas-supplied connection details if no SSH process is listening.
 
 ```bash
-ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -L 9092:localhost:<remote_port> <user>@<remote_server> -NT
+./connect-kafka <user>@<remote_server> <remote_port>
 ```
 
 Do not save the SSH or shared Kafka credentials in the repository or notebook.
@@ -28,12 +28,12 @@ Do not save the SSH or shared Kafka credentials in the repository or notebook.
 
 This error usually means that `kcat` cannot reach the forwarded local port.
 
-1. Confirm that the SSH tunnel terminal is still open.
+1. Run the connection helper again to confirm that its background tunnel is running.
 2. Use `localhost:9092` as the broker address.
 3. Run the metadata check before trying to consume messages.
 
    ```bash
-   kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L
+   kcat -F ~/.config/mlip-kafka.conf -L
    ```
 
 ### Error: `Port already in use` or `Address already in use`
@@ -42,16 +42,15 @@ Another process or an earlier SSH tunnel is already using port `9092`.
 Free that port rather than choosing a different one: the broker advertises `localhost:9092`, so a tunnel on any other local port will connect and then fail to reach the broker.
 
 1. Run `lsof -i :9092` to identify the process.
-2. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the earlier tunnel terminal if it is still open.
-3. Otherwise stop the process that holds the port, then start the tunnel again.
+2. Run `./disconnect-kafka` if an earlier helper-created tunnel is still active.
+3. Otherwise stop the process that holds the port, then run the connection helper again.
    In a Codespace, also check that port `9092` is not forwarded in the **Ports** tab.
 
 ### Error: `SASL authentication failed`
 
-Re-enter the shared Kafka credential from Canvas.
-In the notebook, rerun the setup cell so it prompts again.
-For `kcat`, recreate `~/.config/mlip-kafka.conf` using the README instructions.
-Never paste the credential into the notebook or saved evidence.
+Close the tunnel with `./disconnect-kafka`, remove `~/.config/mlip-kafka.conf`, and run the connection helper again.
+It will prompt for the current shared Kafka password from Canvas and recreate the private configuration used by both the notebook and `kcat`.
+Never paste the credential into the notebook.
 
 ## Code Issues
 
@@ -74,7 +73,7 @@ The producer may not have created the topic yet, or the producer and consumer to
 
 1. Run the producer before the consumer.
 2. Confirm that your Andrew ID or other unique identifier appears in the topic name.
-3. Run `kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L` and check the topic spelling exactly.
+3. Run `kcat -F ~/.config/mlip-kafka.conf -L` and check the topic spelling exactly.
 
 ### Error: `'dict' object has no attribute 'decode'`
 
@@ -107,8 +106,8 @@ sudo apt-get install kcat
 
 ## Final Checks
 
-1. Confirm that the tunnel terminal is still open.
+1. Run the connection helper again and confirm that it reports an active tunnel.
 2. Confirm that SSH, Python, and `kcat` all use port `9092`.
 3. Confirm that the producer and consumer use the same unique topic name.
-4. Stop a consumer that is waiting indefinitely with <kbd>Ctrl</kbd>+<kbd>C</kbd> and recheck its group and reset settings.
+4. If the consumer finds no records before its timeout, recheck its group and reset settings.
 5. Print `message.value` before processing it when the serialized data format is unclear.

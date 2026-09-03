@@ -50,40 +50,34 @@ Check the [bug list and solutions](./bug_list.md) if you encounter common enviro
 
 ## Connecting to Kafka server
 
-1. Retrieve the SSH tunnel details and the shared Kafka credential from the Canvas entry for this lab.
-   These are two separate credentials: an SSH password that opens the tunnel, and a Kafka password that the client authenticates with.
-   Enter the SSH password only when SSH prompts for it, and do not save either credential in the repository or notebook.
-   Use SSH to create a foreground tunnel to the Kafka server.
+Retrieve the SSH tunnel details and the shared Kafka credential from the Canvas entry for this lab.
+These are two separate credentials: an SSH password that opens the tunnel, and a Kafka password that the client authenticates with.
+From the lab directory, run the following command using the non-secret values supplied in Canvas:
 
-   ```bash
-   ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -L 9092:localhost:<remote_port> <user>@<remote_server> -NT
-   ```
+```bash
+./connect-kafka <user>@<remote_server> <remote_port>
+```
 
-   Kafka advertises `localhost:9092`, so the local end of the tunnel must be
-   port `9092`. This will be your `bootstrap_servers` address.
-   Keep this terminal open while you use Kafka, and press <kbd>Ctrl</kbd>+<kbd>C</kbd> in it when you finish the lab to close the tunnel.
+Enter each password only when prompted.
+The helper creates a private Kafka configuration outside the repository, opens the SSH tunnel in the background, and tests the connection.
+Continue when it prints `Connected to Kafka on localhost:9092`.
 
-2. In a second terminal, create a private `kcat` configuration outside the repository, then test broker reachability through the tunnel.
+Kafka advertises `localhost:9092`, so the helper always uses that local port.
+The notebook and `kcat` both reuse the private configuration at `~/.config/mlip-kafka.conf`; neither will ask for the Kafka password again.
+Do not save either credential in the repository or notebook.
 
-   ```bash
-   mkdir -p ~/.config && chmod 700 ~/.config
-   read -rsp "Kafka credential: " KAFKA_CREDENTIAL
-   printf '\nsecurity.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.username=students\nsasl.password=%s\n' \
-     "${KAFKA_CREDENTIAL}" > ~/.config/mlip-kafka.conf
-   chmod 600 ~/.config/mlip-kafka.conf
-   unset KAFKA_CREDENTIAL
-   kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L
-   ```
+When you finish the lab, close the tunnel:
 
-   Continue only when the command returns broker and topic metadata.
-   If it fails, confirm that the tunnel terminal is still open and that the local port matches the value used in the command.
+```bash
+./disconnect-kafka
+```
 
 ## Implementing Producer-Consumer Mode
 
 ### 1. Producer Mode: Writes Data to Broker
 
 Refer to the TODO sections in the notebook.
-Edit the bootstrap servers and add two or three cities of your choice.
+Add two or three cities of your choice and complete the producer serializer TODO.
 Run the code to write to the Kafka stream.
 
 ### 2. Consumer Mode: Reads Data from Broker
@@ -105,7 +99,7 @@ Install with your package installer such as:
 - Ubuntu: `apt-get install kcat`
 - Windows: Use the provided Codespace or DevContainer because native Windows setup is complex.
 
-Run the provided notebook command, which uses `-F ~/.config/mlip-kafka.conf`, connects to the local Kafka broker, specifies your topic, and consumes messages from the earliest offset.
+Run the provided notebook command, which loads `~/.config/mlip-kafka.conf`, specifies your topic, and consumes messages from the earliest offset.
 
 References:
 
@@ -117,7 +111,7 @@ References:
 For your group project you will be reading movies from the Kafka stream.
 Try finding the list of all topics and then read some movielog streams to get an idea of what the data looks like.
 
-`kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -L`
+`kcat -F ~/.config/mlip-kafka.conf -L`
 
 ## Additional resources
 

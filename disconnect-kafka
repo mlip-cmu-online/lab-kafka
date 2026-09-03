@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mlip-kafka"
+control_socket="$state_dir/control"
+target_file="$state_dir/target"
+
+if [[ ! -f $target_file ]]; then
+    echo "No Kafka tunnel started by ./connect-kafka was found."
+    exit 0
+fi
+
+IFS= read -r destination < "$target_file"
+
+if ssh -S "$control_socket" -O exit "$destination" >/dev/null 2>&1; then
+    echo "Disconnected from Kafka."
+else
+    echo "The Kafka tunnel was no longer running; cleaned up its saved state."
+fi
+
+rm -f "$control_socket" "$target_file"

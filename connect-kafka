@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    echo "Usage: ./connect-kafka <user>@<remote_server> <remote_port>" >&2
+}
+
+if [[ $# -ne 2 ]]; then
+    usage
+    exit 2
+fi
+
+destination=$1
+remote_port=$2
+local_port=9092
+
+if [[ $destination == -* || $destination != *@* ]]; then
+    echo "Error: SSH destination must have the form <user>@<remote_server>." >&2
+    exit 2
+fi
+
+if [[ ! $remote_port =~ ^[0-9]+$ ]] || (( remote_port < 1 || remote_port > 65535 )); then
+    echo "Error: remote port must be a number from 1 to 65535." >&2
+    exit 2
+fi
+
+for command_name in ssh kcat lsof; do
+    if ! command -v "$command_name" >/dev/null 2>&1; then
+        echo "Error: $command_name is not installed. Use the provided Codespace or DevContainer." >&2
+        exit 1
+    fi
+done
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
+config_file="$config_dir/mlip-kafka.conf"
+state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mlip-kafka"
+control_socket="$state_dir/control"
+target_file="$state_dir/target"
+
+mkdir -p "$config_dir" "$state_dir"
+chmod 700 "$config_dir" "$state_dir"
+
+reuse_tunnel=false
+if [[ -f $target_file ]]; then
+    mapfile -t saved_target < "$target_file"
+    saved_destination=${saved_target[0]:-}
+    saved_remote_port=${saved_target[1]:-}
+    if ssh -S "$control_socket" -O check "$saved_destination" >/dev/null 2>&1; then
+        if [[ $saved_destination != "$destination" || $saved_remote_port != "$remote_port" ]]; then
+            echo "Error: a Kafka tunnel to a different destination is already running." >&2
+            echo "Run ./disconnect-kafka before connecting to another server or port." >&2
+            exit 1
+        fi
+        reuse_tunnel=true
+        echo "Reusing the Kafka tunnel already running on localhost:$local_port."
+    else
+        rm -f "$control_socket" "$target_file"
+    fi
+else
+    rm -f "$control_socket"
+fi
+
+if [[ $reuse_tunnel == false ]]; then
+    if lsof -nP -iTCP:"$local_port" -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "Error: local port $local_port is already in use." >&2
+        echo "Run ./disconnect-kafka, or use 'lsof -i :$local_port' to identify the process." >&2
+        exit 1
+    fi
+
+    echo "Opening the SSH tunnel. Enter the SSH password from Canvas when prompted."
+    ssh \
+        -o ControlMaster=yes \
+        -o ControlPath="$control_socket" \
+        -o ExitOnForwardFailure=yes \
+        -o ServerAliveInterval=60 \
+        -o ServerAliveCountMax=3 \
+        -o StrictHostKeyChecking=accept-new \
+        -L "$local_port:localhost:$remote_port" \
+        -fNT "$destination"
+    printf '%s\n%s\n' "$destination" "$remote_port" > "$target_file"
+    chmod 600 "$target_file"
+fi
+
+if [[ ! -f $config_file ]]; then
+    read -rsp "Kafka password from Canvas: " kafka_password
+    printf '\n'
+    if [[ -z $kafka_password ]]; then
+        echo "Error: Kafka password cannot be empty." >&2
+        ssh -S "$control_socket" -O exit "$destination" >/dev/null 2>&1 || true
+        rm -f "$control_socket" "$target_file"
+        exit 1
+    fi
+
+    temp_config=$(mktemp "$config_dir/mlip-kafka.conf.XXXXXX")
+    trap 'rm -f "${temp_config:-}"' EXIT
+    chmod 600 "$temp_config"
+    printf '%s\n' \
+        'bootstrap.servers=localhost:9092' \
+        'security.protocol=SASL_PLAINTEXT' \
+        'sasl.mechanism=PLAIN' \
+        'sasl.username=students' \
+        "sasl.password=$kafka_password" > "$temp_config"
+    mv "$temp_config" "$config_file"
+    trap - EXIT
+    unset kafka_password
+else
+    chmod 600 "$config_file"
+    echo "Using the existing private Kafka configuration at $config_file."
+fi
+
+echo "Checking the Kafka broker..."
+if ! kcat -F "$config_file" -L -m 10 >/dev/null; then
+    echo "Connection check failed. Closing the tunnel so you can try again." >&2
+    ssh -S "$control_socket" -O exit "$destination" >/dev/null 2>&1 || true
+    rm -f "$control_socket" "$target_file"
+    echo "If the Kafka password changed, remove $config_file before retrying." >&2
+    exit 1
+fi
+
+echo "Connected to Kafka on localhost:$local_port."
+echo "You can now run KafkaDemo.ipynb. When finished, run ./disconnect-kafka."
