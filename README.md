@@ -4,74 +4,24 @@ In this lab, you will gain hands-on experience with Apache Kafka, a distributed 
 You will establish a connection to a Kafka broker, produce and consume messages, and explore Kafka command-line tools.
 This lab will prepare you for your group project, where you will work with Kafka streams.
 
-Complete each deliverable and save the requested outputs and explanations as evidence of your work.
+Complete each deliverable in `KafkaDemo.ipynb`.
 
 ## Deliverables
 
-- [ ] Establish a secure SSH tunnel to the Kafka server and save the connection evidence.
-      Explain in your lab notes how topics and offsets support message continuity when a consumer disconnects.
+- [ ] Establish a secure SSH tunnel to the Kafka server.
 - [ ] Modify starter code to implement producer and consumer modes for a Kafka topic.
-      Explain the tradeoffs of the different *auto_offset_reset* values.
 - [ ] Demonstrate using Kafka's CLI tool *kcat* (or alternatives) to manage and monitor Kafka topics and messages.
+- [ ] Answer the two reflection prompts at the end of the notebook.
 
-## Generate the Submission Report
+### Submission
 
-Run every executable notebook cell and save `KafkaDemo.ipynb` with its outputs before closing the broker connection.
-Keep the complete `kafka_log.csv`, the SSH tunnel command or listening-port output, and the exact `kcat` command followed by its output in an `evidence/` directory.
-The `kcat` command must consume from the earliest offset and print offsets, for example:
+Submit one file: `KafkaDemo.ipynb` with your code, answers, and cell outputs saved.
+Before submitting:
 
-```bash
-mkdir -p evidence
-lsof -i :9092 | tee evidence/tunnel.txt
-{
-  printf '%s\n' 'kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab-kafka-asmith -C -o earliest -c 5 -f "%o: %s\n"'
-  kcat -F ~/.config/mlip-kafka.conf -b localhost:9092 -t lab-kafka-asmith -C -o earliest -c 5 -f "%o: %s\n"
-} | tee evidence/kcat.txt
-```
-
-Record the non-secret client settings in `evidence/client-config.json`.
-Use the same local tunnel broker in both client sections, describe the producer serialization, and do not include the SSH password or other credentials.
-
-```json
-{
-  "topic": "lab-kafka-asmith",
-  "producer": {
-    "bootstrap_servers": ["localhost:9092"],
-    "security_protocol": "SASL_PLAINTEXT",
-    "sasl_mechanism": "PLAIN",
-    "sasl_username": "students",
-    "value_serializer": "JSON encoded as UTF-8 bytes"
-  },
-  "consumer": {
-    "bootstrap_servers": ["localhost:9092"],
-    "security_protocol": "SASL_PLAINTEXT",
-    "sasl_mechanism": "PLAIN",
-    "sasl_username": "students",
-    "auto_offset_reset": "earliest",
-    "enable_auto_commit": true
-  }
-}
-```
-
-Generate the report from the repository root, replacing the example name, port, and observed offset with values from your saved evidence:
-
-```bash
-python3 scripts/generate-kafka-submission.py \
-  --learner "Your name" \
-  --notebook KafkaDemo.ipynb \
-  --kafka-log kafka_log.csv \
-  --client-config evidence/client-config.json \
-  --tunnel-evidence evidence/tunnel.txt \
-  --kcat-evidence evidence/kcat.txt \
-  --local-port 9092 \
-  --observed-offset 12
-```
-
-Open `submission/kafka-report.html` and correct every item marked `missing` before uploading it to Canvas.
-Keep `submission/kafka-manifest.json` with the raw evidence.
-The command reads saved files only: it does not open an SSH tunnel, reconnect to Kafka, or rerun the notebook.
-It checks notebook execution, the required artifact structure, matching topic/broker/port settings, an earliest-offset `kcat` command, consistency of the cited observed offset, and obvious plaintext credential leakage.
-Answer the offset and start-position interpretation questions separately in Canvas; the checker does not decide whether those explanations are correct.
+1. Run the producer, consumer, and `kcat` cells successfully.
+2. Answer both reflection prompts in the final notebook cell.
+3. Save the notebook so its outputs are included.
+4. Confirm that no password or other credential appears in the notebook.
 
 ## Getting started
 
@@ -155,7 +105,7 @@ Install with your package installer such as:
 - Ubuntu: `apt-get install kcat`
 - Windows: Use the provided Codespace or DevContainer because native Windows setup is complex.
 
-Using the kcat documentation, write a command that uses `-F ~/.config/mlip-kafka.conf`, connects to the local Kafka broker, specifies a topic, and consumes messages from the earliest offset.
+Run the provided notebook command, which uses `-F ~/.config/mlip-kafka.conf`, connects to the local Kafka broker, specifies your topic, and consumes messages from the earliest offset.
 
 References:
 
