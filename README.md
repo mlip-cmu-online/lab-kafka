@@ -11,17 +11,6 @@ Complete each deliverable in `KafkaDemo.ipynb`.
 - [ ] Establish a secure SSH tunnel to the Kafka server.
 - [ ] Modify starter code to implement producer and consumer modes for a Kafka topic.
 - [ ] Demonstrate using Kafka's CLI tool *kcat* (or alternatives) to manage and monitor Kafka topics and messages.
-- [ ] Answer the two reflection prompts at the end of the notebook.
-
-### Submission
-
-Submit one file: `KafkaDemo.ipynb` with your code, answers, and cell outputs saved.
-Before submitting:
-
-1. Run the producer, consumer, and `kcat` cells successfully.
-2. Answer both reflection prompts in the final notebook cell.
-3. Save the notebook so its outputs are included.
-4. Confirm that no password or other credential appears in the notebook.
 
 ## Getting started
 
