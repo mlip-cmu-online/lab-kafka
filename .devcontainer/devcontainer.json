@@ -11,7 +11,8 @@
       },
       "extensions": [
         "ms-python.python",
-        "ms-toolsai.jupyter"
+        "ms-toolsai.jupyter",
+        "NipunaPerera.vscode-kafka-client"
       ]
     }
   },
